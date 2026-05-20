@@ -1,3 +1,10 @@
+<img width="1910" height="1031" alt="AI-Cold-Email-Generator" src="https://github.com/user-attachments/assets/a51d22bf-c158-4367-85e9-ba3b47cf18cc" />
+
+
+
+
+
+
 📧 Cold Email Generator Using Llama 3.1 & LangChain
      
 🚀 Project Overview:
