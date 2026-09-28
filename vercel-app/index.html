@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Cold Email Generator | 3D Outreach Suite</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Three.js for 3D Background Motion -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f5ff',
+              100: '#e0ebff',
+              400: '#818cf8',
+              500: '#6366f1',
+              600: '#4f46e5',
+              glow: '#06b6d4',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom 3D & Ambient CSS */
+    body {
+      background-color: #07090e;
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      overflow-x: hidden;
+      min-height: 100vh;
+    }
+
+    #canvas-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* 3D Card Tilt System */
+    .tilt-wrapper {
+      perspective: 1400px;
+    }
+
+    .tilt-card {
+      transform-style: preserve-3d;
+      transition: transform 0.15s ease-out, box-shadow 0.25s ease;
+      will-change: transform;
+    }
+
+    .glass-panel {
+      background: rgba(14, 18, 28, 0.78);
+      backdrop-filter: blur(28px);
+      -webkit-backdrop-filter: blur(28px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 20px 50px -15px rgba(0, 0, 0, 0.7),
+                  0 0 40px -10px rgba(99, 102, 241, 0.15);
+    }
+
+    .glass-input {
+      background: rgba(8, 11, 20, 0.85);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass-input:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.25), 0 0 20px rgba(99, 102, 241, 0.15);
+      outline: none;
+    }
+
+    /* 3D Button Depth */
+    .btn-3d {
+      position: relative;
+      background: linear-gradient(135deg, #6366f1 0%, #4338ca 50%, #312e81 100%);
+      box-shadow: 0 10px 25px -5px rgba(99, 102, 241, 0.5),
+                  0 4px 0 #312e81;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .btn-3d:hover {
+      box-shadow: 0 14px 30px -5px rgba(99, 102, 241, 0.65),
+                  0 4px 0 #312e81;
+      transform: translateY(-2px);
+    }
+
+    .btn-3d:active {
+      transform: translateY(2px);
+      box-shadow: 0 4px 15px -3px rgba(99, 102, 241, 0.4),
+                  0 1px 0 #312e81;
+    }
+
+    .btn-3d:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Animated 3D Gradient Text */
+    .gradient-text-3d {
+      background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 40%, #818cf8 70%, #06b6d4 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    /* Dynamic Sheen / Specular Overlay */
+    .sheen-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      background: radial-gradient(
+        circle 400px at var(--mouse-x, 50%) var(--mouse-y, 50%),
+        rgba(255, 255, 255, 0.08),
+        transparent 70%
+      );
+      transition: opacity 0.3s ease;
+      opacity: 0;
+    }
+
+    .tilt-card:hover .sheen-overlay {
+      opacity: 1;
+    }
+
+    /* Orbital 3D Spinner */
+    .orbit-spinner {
+      position: relative;
+      width: 44px;
+      height: 44px;
+      transform-style: preserve-3d;
+      perspective: 800px;
+    }
+
+    .orbit-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+    }
+
+    .orbit-ring-1 {
+      border-top: 3px solid #6366f1;
+      border-bottom: 3px solid transparent;
+      border-left: 3px solid transparent;
+      border-right: 3px solid transparent;
+      animation: orbit1 1.2s linear infinite;
+    }
+
+    .orbit-ring-2 {
+      border-right: 3px solid #06b6d4;
+      border-top: 3px solid transparent;
+      border-bottom: 3px solid transparent;
+      border-left: 3px solid transparent;
+      animation: orbit2 1.2s linear infinite;
+    }
+
+    .orbit-ring-3 {
+      border-bottom: 3px solid #a855f7;
+      border-top: 3px solid transparent;
+      border-left: 3px solid transparent;
+      border-right: 3px solid transparent;
+      animation: orbit3 1.2s linear infinite;
+    }
+
+    @keyframes orbit1 {
+      0% { transform: rotateX(35deg) rotateY(-45deg) rotateZ(0deg); }
+      100% { transform: rotateX(35deg) rotateY(-45deg) rotateZ(360deg); }
+    }
+
+    @keyframes orbit2 {
+      0% { transform: rotateX(50deg) rotateY(10deg) rotateZ(0deg); }
+      100% { transform: rotateX(50deg) rotateY(10deg) rotateZ(360deg); }
+    }
+
+    @keyframes orbit3 {
+      0% { transform: rotateX(35deg) rotateY(55deg) rotateZ(0deg); }
+      100% { transform: rotateX(35deg) rotateY(55deg) rotateZ(360deg); }
+    }
+
+    /* Pulse animation for status dots */
+    @keyframes pulse-dot {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .animate-pulse-dot {
+      animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+
+    /* Custom Scrollbar for Output */
+    .custom-scroll::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scroll::-webkit-scrollbar-track {
+      background: rgba(15, 23, 42, 0.6);
+      border-radius: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb {
+      background: rgba(99, 102, 241, 0.4);
+      border-radius: 8px;
+    }
+    .custom-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(99, 102, 241, 0.8);
+    }
+  </style>
+</head>
+
+<body class="relative min-h-screen flex flex-col justify-between selection:bg-indigo-500 selection:text-white">
+
+  <!-- Interactive 3D Particle Canvas Background -->
+  <div id="canvas-container"></div>
+
+  <!-- Decorative Ambient Glows -->
+  <div class="fixed top-0 left-1/4 w-96 h-96 bg-indigo-600/15 rounded-full blur-[130px] pointer-events-none"></div>
+  <div class="fixed bottom-10 right-1/4 w-96 h-96 bg-cyan-500/15 rounded-full blur-[130px] pointer-events-none"></div>
+
+  <!-- Main Container -->
+  <main class="relative z-10 container mx-auto px-4 py-8 max-w-4xl flex-1 flex flex-col justify-center">
+
+    <!-- Top Navigation / 3D Badge -->
+    <header class="flex items-center justify-between mb-8">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 p-[1px] shadow-lg shadow-indigo-500/30 flex items-center justify-center transform hover:rotate-6 transition-transform">
+          <div class="w-full h-full bg-[#0a0d17] rounded-[11px] flex items-center justify-center">
+            <svg class="w-5 h-5 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+            </svg>
+          </div>
+        </div>
+        <div>
+          <span class="text-xs font-bold tracking-wider uppercase text-indigo-400">AtliQ Outreach</span>
+          <h1 class="text-lg font-bold text-white tracking-tight leading-none">Cold Email AI</h1>
+        </div>
+      </div>
+
+      <div class="flex items-center space-x-2">
+        <span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+          <span class="w-2 h-2 mr-1.5 rounded-full bg-emerald-400 animate-pulse-dot"></span>
+          Groq LPUs Active
+        </span>
+      </div>
+    </header>
+
+    <!-- 3D Tilt Form Card -->
+    <div class="tilt-wrapper mb-8">
+      <div id="tiltCard" class="tilt-card glass-panel rounded-3xl p-6 sm:p-10 relative overflow-hidden">
+        <div class="sheen-overlay"></div>
+
+        <!-- Card Header with 3D Depth -->
+        <div class="relative z-10 mb-8">
+          <div class="inline-flex items-center space-x-2 px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-xs font-semibold mb-3">
+            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+            </svg>
+            <span>High-Velocity Business Development</span>
+          </div>
+          <h2 class="text-2xl sm:text-4xl font-extrabold tracking-tight gradient-text-3d">
+            AI Cold Email Generator
+          </h2>
+          <p class="text-slate-400 text-sm sm:text-base mt-2 max-w-xl">
+            Extract live requirements from any corporate career posting and synthesize an executive-ready cold pitch tailored to AtliQ's capabilities.
+          </p>
+        </div>
+
+        <!-- Alert / Error Banner -->
+        <div id="errorAlert" class="hidden relative z-10 mb-6 p-4 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-sm flex items-start space-x-3 transition-all duration-300">
+          <svg class="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+          </svg>
+          <div class="flex-1">
+            <span class="font-semibold block text-rose-200">Execution Error</span>
+            <span id="errorMessage" class="text-xs sm:text-sm">Something went wrong.</span>
+          </div>
+          <button type="button" onclick="dismissError()" class="text-rose-400 hover:text-rose-200 text-lg leading-none">&times;</button>
+        </div>
+
+        <!-- Input Form -->
+        <form id="emailForm" onsubmit="handleGenerate(event)" class="relative z-10 space-y-6">
+
+          <!-- Job URL Input -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <label for="jobUrl" class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                Target Job Posting URL <span class="text-indigo-400">*</span>
+              </label>
+              <button type="button" onclick="useSampleUrl()" class="text-xs text-indigo-400 hover:text-indigo-300 transition-colors font-medium">
+                Try Sample Job
+              </button>
+            </div>
+            <div class="relative">
+              <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/>
+                </svg>
+              </div>
+              <input
+                type="url"
+                id="jobUrl"
+                required
+                placeholder="https://careers.nike.com/job/R-12345 or https://boards.greenhouse.io/..."
+                class="glass-input w-full pl-10 pr-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-500"
+              />
+            </div>
+          </div>
+
+          <!-- Two-column: Sender Name & Sender Role -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="senderName" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                Your Name
+              </label>
+              <input
+                type="text"
+                id="senderName"
+                value="Mohan"
+                maxlength="100"
+                class="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-500"
+              />
+            </div>
+
+            <div>
+              <label for="senderRole" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                Your Role / Organization
+              </label>
+              <input
+                type="text"
+                id="senderRole"
+                value="Business Development Executive at AtliQ"
+                maxlength="200"
+                class="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-500"
+              />
+            </div>
+          </div>
+
+          <!-- Two-column: Model Dropdown & Passcode -->
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label for="modelSelect" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                Inference Model (Groq LPU)
+              </label>
+              <div class="relative">
+                <select
+                  id="modelSelect"
+                  class="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-100 appearance-none cursor-pointer"
+                >
+                  <option value="openai/gpt-oss-20b" selected>openai/gpt-oss-20b (1000 t/s • Fastest)</option>
+                  <option value="openai/gpt-oss-120b">openai/gpt-oss-120b (500 t/s • Reasoning)</option>
+                  <option value="qwen/qwen3.8-27b">qwen/qwen3.8-27b (450 t/s • Versatile)</option>
+                </select>
+                <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div class="flex justify-between items-center mb-2">
+                <label for="appPasscode" class="block text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  App Passcode <span class="text-indigo-400">*</span>
+                </label>
+                <label class="text-[11px] text-slate-400 flex items-center space-x-1 cursor-pointer">
+                  <input type="checkbox" id="rememberPasscode" class="rounded bg-slate-800 border-slate-700 text-indigo-500 focus:ring-0">
+                  <span>Remember</span>
+                </label>
+              </div>
+              <div class="relative">
+                <input
+                  type="password"
+                  id="appPasscode"
+                  required
+                  placeholder="Enter secret passcode"
+                  class="glass-input w-full px-4 py-3 rounded-xl text-sm text-slate-100 placeholder-slate-500 pr-10"
+                />
+                <button
+                  type="button"
+                  onclick="togglePasscodeVisibility()"
+                  class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-slate-200 transition-colors"
+                >
+                  <svg id="eyeIcon" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Submit Button -->
+          <div class="pt-2">
+            <button
+              type="submit"
+              id="generateBtn"
+              class="btn-3d w-full py-4 px-6 rounded-2xl text-white font-bold text-base flex items-center justify-center space-x-3 group"
+            >
+              <span id="btnIcon">
+                <svg class="w-5 h-5 text-white/90 group-hover:rotate-12 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+                </svg>
+              </span>
+              <span id="btnText">Generate Cold Email</span>
+            </button>
+          </div>
+        </form>
+
+        <!-- Loading Interactive View -->
+        <div id="loadingView" class="hidden relative z-10 py-12 flex flex-col items-center justify-center space-y-5 text-center">
+          <div class="orbit-spinner">
+            <div class="orbit-ring orbit-ring-1"></div>
+            <div class="orbit-ring orbit-ring-2"></div>
+            <div class="orbit-ring orbit-ring-3"></div>
+          </div>
+          <div>
+            <h3 id="loadingStatusText" class="text-base font-semibold text-white tracking-wide">
+              Initiating secure extraction...
+            </h3>
+            <p class="text-xs text-slate-400 mt-1">
+              Scraping job requirements & synthesizing personalized outreach via Groq
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Generated Email Result Card (Visible upon success) -->
+    <div id="resultCard" class="hidden tilt-wrapper mb-12">
+      <div class="tilt-card glass-panel rounded-3xl p-6 sm:p-8 relative overflow-hidden border border-indigo-500/20 shadow-2xl shadow-indigo-950/40">
+        <div class="sheen-overlay"></div>
+
+        <div class="relative z-10">
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-5 border-b border-white/10 gap-3">
+            <div class="flex items-center space-x-2.5">
+              <span class="w-3 h-3 rounded-full bg-emerald-400 animate-pulse"></span>
+              <h3 class="text-lg font-bold text-white tracking-tight">Generated Cold Email</h3>
+              <span id="modelBadge" class="text-[11px] font-mono font-medium px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                openai/gpt-oss-20b
+              </span>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex items-center space-x-2">
+              <button
+                type="button"
+                id="copyBtn"
+                onclick="copyEmail()"
+                class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-white/10 transition-all flex items-center space-x-1.5 active:scale-95"
+              >
+                <svg id="copyIcon" class="w-4 h-4 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3"/>
+                </svg>
+                <span id="copyText">Copy Email</span>
+              </button>
+
+              <button
+                type="button"
+                onclick="downloadEmail()"
+                class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600/30 hover:bg-indigo-600/50 text-indigo-200 border border-indigo-500/30 transition-all flex items-center space-x-1.5 active:scale-95"
+              >
+                <svg class="w-4 h-4 text-cyan-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                </svg>
+                <span>Download .txt</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Email Content Container -->
+          <div class="mt-6">
+            <div
+              id="emailOutput"
+              class="custom-scroll whitespace-pre-wrap font-mono text-sm leading-relaxed p-5 sm:p-6 rounded-2xl bg-black/40 border border-white/5 text-slate-200 max-h-[500px] overflow-y-auto selection:bg-indigo-500 selection:text-white"
+            ></div>
+          </div>
+
+          <!-- Footer stats & new email button -->
+          <div class="mt-4 flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 gap-2">
+            <div id="statsInfo" class="flex items-center space-x-3">
+              <span>Ready to send</span>
+            </div>
+            <button
+              type="button"
+              onclick="resetView()"
+              class="text-indigo-400 hover:text-indigo-300 transition-colors font-medium self-start sm:self-auto"
+            >
+              &larr; Generate Another Email
+            </button>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="relative z-10 border-t border-white/5 py-4 text-center text-xs text-slate-500">
+    <p>Powered by Groq LPUs & AtliQ Business Development &bull; Vercel Serverless Ready</p>
+  </footer>
+
+  <!-- Application Logic & 3D Engine -->
+  <script>
+    // 1. Passcode & State Management
+    const PASSCODE_STORAGE_KEY = 'atliq_cold_email_passcode';
+    let currentEmailContent = '';
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const savedPasscode = localStorage.getItem(PASSCODE_STORAGE_KEY);
+      if (savedPasscode) {
+        document.getElementById('appPasscode').value = savedPasscode;
+        document.getElementById('rememberPasscode').checked = true;
+      }
+    });
+
+    function togglePasscodeVisibility() {
+      const input = document.getElementById('appPasscode');
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+    }
+
+    function useSampleUrl() {
+      document.getElementById('jobUrl').value = 'https://jobs.nike.com';
+    }
+
+    function dismissError() {
+      document.getElementById('errorAlert').classList.add('hidden');
+    }
+
+    function showError(msg) {
+      const alert = document.getElementById('errorAlert');
+      const msgEl = document.getElementById('errorMessage');
+      msgEl.textContent = msg;
+      alert.classList.remove('hidden');
+      alert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+      // Trigger shake animation
+      const card = document.getElementById('tiltCard');
+      card.classList.add('animate-pulse');
+      setTimeout(() => card.classList.remove('animate-pulse'), 500);
+    }
+
+    // 2. Submit & Execution
+    async function handleGenerate(e) {
+      e.preventDefault();
+      dismissError();
+
+      const url = document.getElementById('jobUrl').value.trim();
+      const senderName = document.getElementById('senderName').value.trim() || 'Mohan';
+      const senderRole = document.getElementById('senderRole').value.trim() || 'Business Development Executive at AtliQ';
+      const model = document.getElementById('modelSelect').value;
+      const passcode = document.getElementById('appPasscode').value.trim();
+      const remember = document.getElementById('rememberPasscode').checked;
+
+      if (!url) {
+        showError('Please provide a valid job posting URL.');
+        return;
+      }
+
+      if (!passcode) {
+        showError('Please enter your application passcode.');
+        return;
+      }
+
+      // Save/clear passcode in localStorage
+      if (remember) {
+        localStorage.setItem(PASSCODE_STORAGE_KEY, passcode);
+      } else {
+        localStorage.removeItem(PASSCODE_STORAGE_KEY);
+      }
+
+      // Toggle UI to loading state
+      const generateBtn = document.getElementById('generateBtn');
+      const form = document.getElementById('emailForm');
+      const loadingView = document.getElementById('loadingView');
+      const resultCard = document.getElementById('resultCard');
+
+      generateBtn.disabled = true;
+      form.classList.add('opacity-40', 'pointer-events-none');
+      loadingView.classList.remove('hidden');
+      resultCard.classList.add('hidden');
+
+      // Animated loading progress ticker
+      const statusText = document.getElementById('loadingStatusText');
+      const steps = [
+        'Inspecting URL & validating security...',
+        'Scraping target job description...',
+        'Filtering DOM & cleaning layout text...',
+        'Synthesizing cold pitch via Groq LPU...',
+        'Polishing subject line & value proposition...'
+      ];
+      let stepIdx = 0;
+      const ticker = setInterval(() => {
+        stepIdx = (stepIdx + 1) % steps.length;
+        statusText.textContent = steps[stepIdx];
+      }, 1800);
+
+      try {
+        const response = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            url: url,
+            sender_name: senderName,
+            sender_role: senderRole,
+            model: model,
+            passcode: passcode
+          })
+        });
+
+        clearInterval(ticker);
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          const err = data.error || `Server responded with HTTP ${response.status}`;
+          showError(err);
+          return;
+        }
+
+        // Display results
+        currentEmailContent = data.email || '';
+        document.getElementById('emailOutput').textContent = currentEmailContent;
+        document.getElementById('modelBadge').textContent = data.model || model;
+        
+        const wordCount = currentEmailContent.trim().split(/\s+/).length;
+        document.getElementById('statsInfo').innerHTML = `
+          <span><strong>${wordCount}</strong> words generated</span>
+          <span>&bull;</span>
+          <span>~${data.job_chars_parsed || 0} chars context</span>
+        `;
+
+        resultCard.classList.remove('hidden');
+        resultCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+      } catch (err) {
+        clearInterval(ticker);
+        showError('Network error connecting to API: ' + (err.message || 'Please check your connection.'));
+      } finally {
+        generateBtn.disabled = false;
+        form.classList.remove('opacity-40', 'pointer-events-none');
+        loadingView.classList.add('hidden');
+      }
+    }
+
+    // 3. Copy & Download Helpers
+    async function copyEmail() {
+      if (!currentEmailContent) return;
+      try {
+        await navigator.clipboard.writeText(currentEmailContent);
+        const copyText = document.getElementById('copyText');
+        const copyIcon = document.getElementById('copyIcon');
+        
+        const originalText = copyText.textContent;
+        copyText.textContent = 'Copied!';
+        copyIcon.classList.add('text-emerald-400');
+
+        setTimeout(() => {
+          copyText.textContent = originalText;
+          copyIcon.classList.remove('text-emerald-400');
+        }, 2000);
+      } catch (err) {
+        alert('Could not auto-copy. Please manually select and copy text.');
+      }
+    }
+
+    function downloadEmail() {
+      if (!currentEmailContent) return;
+      const blob = new Blob([currentEmailContent], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cold_email_${new Date().toISOString().slice(0,10)}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    function resetView() {
+      document.getElementById('resultCard').classList.add('hidden');
+      document.getElementById('tiltCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    // 4. 3D Card Tilt Physics & Mouse Specular Lighting
+    const tiltCard = document.getElementById('tiltCard');
+    if (tiltCard && window.matchMedia('(hover: hover)').matches) {
+      tiltCard.addEventListener('mousemove', (e) => {
+        const rect = tiltCard.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+
+        // Calculate rotation (-6deg to 6deg)
+        const centerX = rect.width / 2;
+        const centerY = rect.height / 2;
+        const rotateX = ((y - centerY) / centerY) * -5;
+        const rotateY = ((x - centerX) / centerX) * 5;
+
+        tiltCard.style.transform = `perspective(1200px) rotateX(${rotateX}deg) rotateY(${rotateY}deg) scale3d(1.01, 1.01, 1.01)`;
+        tiltCard.style.setProperty('--mouse-x', `${x}px`);
+        tiltCard.style.setProperty('--mouse-y', `${y}px`);
+      });
+
+      tiltCard.addEventListener('mouseleave', () => {
+        tiltCard.style.transform = 'perspective(1200px) rotateX(0deg) rotateY(0deg) scale3d(1, 1, 1)';
+      });
+    }
+
+    // 5. Lightweight Three.js Interactive 3D Background
+    (function initThreeBackground() {
+      const container = document.getElementById('canvas-container');
+      if (!container || typeof THREE === 'undefined') return;
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+      camera.position.z = 24;
+
+      const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      container.appendChild(renderer.domElement);
+
+      // Particle Constellation Geometry
+      const count = 350;
+      const positions = new Float32Array(count * 3);
+      const colors = new Float32Array(count * 3);
+
+      const color1 = new THREE.Color(0x6366f1); // Indigo
+      const color2 = new THREE.Color(0x06b6d4); // Cyan
+      const tempColor = new THREE.Color();
+
+      for (let i = 0; i < count; i++) {
+        positions[i * 3] = (Math.random() - 0.5) * 60;
+        positions[i * 3 + 1] = (Math.random() - 0.5) * 60;
+        positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
+
+        tempColor.lerpColors(color1, color2, Math.random());
+        colors[i * 3] = tempColor.r;
+        colors[i * 3 + 1] = tempColor.g;
+        colors[i * 3 + 2] = tempColor.b;
+      }
+
+      const geometry = new THREE.BufferGeometry();
+      geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+      geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+
+      // Create Particle Texture (soft glow circle)
+      const canvas = document.createElement('canvas');
+      canvas.width = 32;
+      canvas.height = 32;
+      const ctx = canvas.getContext('2d');
+      const grad = ctx.createRadialGradient(16, 16, 0, 16, 16, 16);
+      grad.addColorStop(0, 'rgba(255,255,255,1)');
+      grad.addColorStop(0.3, 'rgba(255,255,255,0.7)');
+      grad.addColorStop(1, 'rgba(255,255,255,0)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 32, 32);
+
+      const texture = new THREE.CanvasTexture(canvas);
+
+      const material = new THREE.PointsMaterial({
+        size: 0.8,
+        vertexColors: true,
+        map: texture,
+        transparent: true,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false
+      });
+
+      const particleSystem = new THREE.Points(geometry, material);
+      scene.add(particleSystem);
+
+      // Subtle floating 3D Wireframe Icosahedron
+      const wireGeo = new THREE.IcosahedronGeometry(7, 1);
+      const wireMat = new THREE.MeshBasicMaterial({
+        color: 0x4f46e5,
+        wireframe: true,
+        transparent: true,
+        opacity: 0.12
+      });
+      const icosahedron = new THREE.Mesh(wireGeo, wireMat);
+      scene.add(icosahedron);
+
+      // Mouse Parallax
+      let mouseX = 0;
+      let mouseY = 0;
+      window.addEventListener('mousemove', (e) => {
+        mouseX = (e.clientX - window.innerWidth / 2) * 0.0006;
+        mouseY = (e.clientY - window.innerHeight / 2) * 0.0006;
+      });
+
+      // Render Loop
+      let clock = new THREE.Clock();
+      function animate() {
+        requestAnimationFrame(animate);
+        const elapsedTime = clock.getElapsedTime();
+
+        particleSystem.rotation.y = elapsedTime * 0.03 + mouseX * 2;
+        particleSystem.rotation.x = elapsedTime * 0.02 + mouseY * 2;
+
+        icosahedron.rotation.y = elapsedTime * 0.05 + mouseX;
+        icosahedron.rotation.x = elapsedTime * 0.04 + mouseY;
+
+        renderer.render(scene, camera);
+      }
+      animate();
+
+      // Responsive Resize
+      window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+      });
+    })();
+  </script>
+</body>
+</html>
