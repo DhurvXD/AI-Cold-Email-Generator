@@ -1,3 +1,5 @@
+<img width="1887" height="936" alt="Screenshot 2026-10-01 114338" src="https://github.com/user-attachments/assets/9372ef80-8c56-4555-9196-c0a535ff3484" />
+
 <div align="center">
 
 # 📧 AI Cold Email Generator
